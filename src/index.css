@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+/* Scrollbar Gizleme */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* --- KONTROLLÜ ZIPLAMA EFEKTİ --- */
+@keyframes popStreak {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15); /* Çok fazla büyütmeyelim, 1.3 çok fazlaydı */
+    background-color: #d7ccc8; 
+  }
+  100% {
+    transform: scale(1);
+    background-color: #e8e6e1; 
+  }
+}
+
+.animate-pop {
+  animation: popStreak 0.4s ease-in-out;
+}
