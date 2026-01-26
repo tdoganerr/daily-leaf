@@ -12,11 +12,12 @@ const ArchiveModal = lazy(() => import("./ArchiveModal"));
 const ProfileModal = lazy(() => import("./ProfileModal"));
 const AdminModal = lazy(() => import("./AdminModal"));
 
-// --- İKONLAR (Aynı) ---
+// --- İKONLAR ---
 const LeafIcon = () => (<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.5 2 9 0 5.5-4.5 10-10 10Z" /><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" /></svg>);
 const WorldIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" /></svg>);
 const HistoryIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" /></svg>);
 const FoodIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1" /><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" /><line x1="6" y1="1" x2="6" y2="4" /><line x1="10" y1="1" x2="10" y2="4" /><line x1="14" y1="1" x2="14" y2="4" /></svg>);
+// EKSİK OLAN İKON BUYDU, EKLENDİ:
 const QuillIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z" /><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" /><path d="M2 2l7.586 7.586" /></svg>);
 const UserIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>);
 const DiamondIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12l4 6-10 13L2 9z"></path></svg>);
@@ -85,11 +86,9 @@ function DailyLeafContent() {
   const [showProfile, setShowProfile] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   
-  // --- YENİ: URL'DEN TARİH OKUMA (Deep Linking) ---
   const [currentDate, setCurrentDate] = useState(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const dateParam = urlParams.get('date');
-    // Eğer URL'de geçerli bir tarih varsa onu kullan, yoksa bugünü al
     return dateParam && !isNaN(Date.parse(dateParam)) ? dateParam : new Date().toISOString().split('T')[0];
   });
 
@@ -106,18 +105,14 @@ function DailyLeafContent() {
   const lineHeights = ["leading-7", "leading-8", "leading-10"];
   const audioRef = useRef(null);
 
-  // --- YENİ: URL SENKRONİZASYONU ---
-  // currentDate değiştiğinde URL'i güncelle (Sayfa yenilenmeden)
   useEffect(() => {
     const url = new URL(window.location);
     url.searchParams.set('date', currentDate);
     window.history.pushState({}, '', url);
   }, [currentDate]);
 
-  // --- YENİ: KLAVYE KISAYOLLARI (Sistemsel Geliştirme) ---
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Sadece modal açık değilse ve yazı yazılmıyorsa
       if (!showArchive && !showProfile && !showAdmin && !showLogin && !showPayment && step < 4) {
         if (e.key === "ArrowRight") { if (step < 4) setStep(s => s + 1); }
         if (e.key === "ArrowLeft") { if (step > 0) setStep(s => s - 1); }
@@ -167,22 +162,13 @@ function DailyLeafContent() {
   const toggleFavorite = async () => { if (!user) { setShowLogin(true); return; } if (isOffline) { toast.error("Çevrimdışıyken işlem yapılamaz."); return; } if (isFavorite) { const { error } = await supabase.from('favorites').delete().eq('user_id', user.id).eq('content_date', currentDate); if (!error) setIsFavorite(false); } else { const { error } = await supabase.from('favorites').insert({ user_id: user.id, content_date: currentDate }); if (!error) { setIsFavorite(true); toast.success(language === "en" ? "Added to collection." : "Koleksiyonuna eklendi.", { icon: '🍂', style: { background: isDarkMode ? '#fff' : '#1c1917', color: isDarkMode ? '#000' : '#fff' } }); } } };
   const handleShare = async () => { if (navigator.share) { try { await navigator.share({ title: 'Daily Leaf', text: `...`, url: window.location.href, }); } catch (error) {} } else { navigator.clipboard.writeText(window.location.href); toast.success("Link kopyalandı!"); } };
   const handleLogout = async () => { await supabase.auth.signOut(); setShowProfile(false); setStreak(0); };
-  
-  // --- TARİH SEÇİMİ (NAVİGASYON) ---
-  // Modal kapandığında veya arşivden seçildiğinde URL ve state güncellenir
-  const handleSelectDate = (date, targetStep = 0) => { 
-      setCurrentDate(date); 
-      setStep(targetStep); 
-      setShowArchive(false); 
-      setShowProfile(false); 
-  };
+  const handleSelectDate = (date, targetStep = 0) => { setCurrentDate(date); setStep(targetStep); setShowArchive(false); setShowProfile(false); };
 
   const content = dailyContent ? { story: language === 'en' ? dailyContent.story_en : dailyContent.story_tr, note: language === 'en' ? dailyContent.note_en : dailyContent.note_tr, world: language === 'en' ? dailyContent.world_en : dailyContent.world_tr, history: language === 'en' ? dailyContent.history_en : dailyContent.history_tr, food: language === 'en' ? dailyContent.food_en : dailyContent.food_tr, word: language === 'en' ? dailyContent.word_en : dailyContent.word_tr, meaning: language === 'en' ? dailyContent.meaning_en : dailyContent.meaning_tr, image: dailyContent.image_url, audio: dailyContent.audio_url } : null;
   const staticTexts = { en: { title: "The Daily Leaf", start: "Start Reading", continue: "Continue", complete: "Complete Day", locked: "Unlock Content", journalTitle: "Your Inner Voice", journalPlaceholder: "Write a note for yourself...", save: "Save Note" }, tr: { title: "Günün Yaprağı", start: "Okumaya Başla", continue: "Devam Et", complete: "Günü Tamamla", locked: "Kilidi Aç", journalTitle: "İç Sesin", journalPlaceholder: "Kendine bir not bırak...", save: "Notu Kaydet" } };
   const handleNext = () => { if (step < 4) setStep(prev => prev + 1); else setStep(0); };
   const getButtonText = () => { if (step === 0) return staticTexts[language].start; if (step === 3 && !isPremium) return staticTexts[language].locked; if (step === 4) return language === "en" ? "Read Again" : "Tekrar Oku"; return staticTexts[language].continue; };
 
-  // --- ARKA PLAN RENGİ (Global) ---
   useEffect(() => {
     document.body.style.backgroundColor = isDarkMode ? '#1c1917' : '#f5f0e6';
   }, [isDarkMode]);
