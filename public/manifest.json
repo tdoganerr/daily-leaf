@@ -2,20 +2,23 @@
   "name": "Daily Leaf",
   "short_name": "Daily Leaf",
   "start_url": "/",
-  "display": "standalone",
+  "display": "browser",
   "background_color": "#fffdf9",
   "theme_color": "#fffdf9",
+  "description": "Günün hikayesi, kelimesi ve huzurlu bir an.",
   "orientation": "portrait",
   "icons": [
     {
       "src": "/192 icon.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "/512 icon.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon.svg",

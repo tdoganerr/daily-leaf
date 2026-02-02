@@ -1,0 +1,542 @@
+import ReadingBuddies from "./ReadingBuddies";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { supabase } from "./supabase";
+import { Helmet } from "react-helmet-async";
+import { Toaster, toast } from 'sonner';
+import { motion, AnimatePresence } from "framer-motion";
+import html2canvas from "html2canvas";
+import Login from "./Login";
+import PaymentModal from "./PaymentModal";
+import Skeleton from "./Skeleton";
+import ImageLoader from "./ImageLoader";
+import ErrorBoundary from "./ErrorBoundary";
+import AmbientPlayer from "./AmbientPlayer";
+import StreakTree from "./StreakTree";
+import Onboarding from "./Onboarding";
+import SplashScreen from "./SplashScreen";
+
+const ArchiveModal = lazy(() => import("./ArchiveModal"));
+const ProfileModal = lazy(() => import("./ProfileModal"));
+const AdminModal = lazy(() => import("./AdminModal"));
+
+// --- İKONLAR ---
+const LeafIcon = () => (<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.5 2 9 0 5.5-4.5 10-10 10Z" /><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" /></svg>);
+const WorldIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" /></svg>);
+const HistoryIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" /></svg>);
+const FoodIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1" /><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" /><line x1="6" y1="1" x2="6" y2="4" /><line x1="10" y1="1" x2="10" y2="4" /><line x1="14" y1="1" x2="14" y2="4" /></svg>);
+const QuillIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z" /><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" /><path d="M2 2l7.586 7.586" /></svg>);
+const UserIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>);
+const DiamondIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12l4 6-10 13L2 9z"></path></svg>);
+const LockIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>);
+const BookIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>);
+const CalendarIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>);
+const MusicIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>);
+const HeartIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>);
+const HeartOutlineIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>);
+const ShareIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>);
+const StackIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>);
+const PenIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>);
+const TextSizeIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>);
+const DictionaryIcon = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>);
+const WifiOffIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path><path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>);
+const MoonIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>);
+const SunIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>);
+const SnowIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-400"><path d="M2 12h20M12 2v20M20 20L4 4m16 0L4 20M15.5 8.5l-7 7M8.5 8.5l7 7"/></svg>);
+
+function getFormattedDate(dateString, lang) {
+  const dateOptions = { day: "numeric", month: "long", year: "numeric", weekday: "long" };
+  const date = new Date(dateString); 
+  return date.toLocaleDateString(lang === "en" ? "en-US" : "tr-TR", dateOptions);
+}
+
+// --- AYARLAR MENÜSÜ (REUSABLE) ---
+const SettingsDropdown = ({ readingTheme, setReadingTheme, readingFont, setReadingFont, textSize, setTextSize, isDarkMode }) => (
+    <div className="absolute top-12 right-0 w-56 bg-white dark:bg-[#292524] rounded-2xl shadow-2xl p-4 z-[60] border border-stone-200 dark:border-stone-700 animate-in fade-in zoom-in-95">
+      <div className="space-y-4">
+        <div className="flex bg-stone-100 dark:bg-stone-800 rounded-lg p-1">
+          <button onClick={() => setReadingFont('sans')} className={`flex-1 py-1 text-xs font-bold rounded-md transition-all ${readingFont === 'sans' ? 'bg-white dark:bg-stone-600 shadow-sm' : 'text-stone-500'}`}>Sans</button>
+          <button onClick={() => setReadingFont('serif')} className={`flex-1 py-1 text-xs font-bold font-serif rounded-md transition-all ${readingFont === 'serif' ? 'bg-white dark:bg-stone-600 shadow-sm' : 'text-stone-500'}`}>Serif</button>
+        </div>
+        <div className="flex justify-between px-2">
+            <button onClick={() => setReadingTheme('light')} className={`w-8 h-8 rounded-full border border-stone-200 bg-[#fffdf9] ${readingTheme === 'light' ? 'ring-2 ring-green-500' : ''}`} title="Gündüz"></button>
+            <button onClick={() => setReadingTheme('sepia')} className={`w-8 h-8 rounded-full border border-stone-200 bg-[#e3d5c6] ${readingTheme === 'sepia' ? 'ring-2 ring-green-500' : ''}`} title="Sepya"></button>
+            <button onClick={() => setReadingTheme('dark')} className={`w-8 h-8 rounded-full border border-stone-600 bg-[#1c1917] ${readingTheme === 'dark' ? 'ring-2 ring-green-500' : ''}`} title="Gece"></button>
+        </div>
+        <div className="flex items-center justify-between bg-stone-100 dark:bg-stone-800 rounded-lg px-3 py-2">
+           <button onClick={() => setTextSize(Math.max(0, textSize - 1))} className="text-sm font-bold text-stone-500 hover:text-stone-800 dark:hover:text-stone-200">A-</button>
+           <span className="text-xs font-bold text-stone-400">{textSize + 1}</span>
+           <button onClick={() => setTextSize(Math.min(2, textSize + 1))} className="text-lg font-bold text-stone-500 hover:text-stone-800 dark:hover:text-stone-200">A+</button>
+        </div>
+      </div>
+    </div>
+);
+
+// --- ANİMASYONLU KART BİLEŞENİ ---
+const LeafCard = ({ children, onNext, btnText, step, theme, showSettings, setShowSettings, settingsProps }) => {
+  const contentRef = useRef(null);
+  
+  const getThemeColors = () => {
+    if (theme === 'sepia') return 'bg-[#e3d5c6]'; 
+    if (theme === 'dark') return 'bg-[#1c1917]'; 
+    return 'bg-[#fffdf9]'; 
+  };
+
+  useEffect(() => { 
+    if (contentRef.current) contentRef.current.scrollTo(0, 0); 
+  }, [step]);
+
+  return (
+    <div className={`flex flex-col h-full relative transition-colors duration-700 overflow-hidden ${getThemeColors()}`}>
+      {/* Ayarlar Butonu Her Sayfada Olsun */}
+      <div className="absolute top-4 right-4 z-[55]">
+        <button 
+          onClick={() => setShowSettings(!showSettings)} 
+          className={`p-2 rounded-full transition-all duration-300 ${theme === 'dark' ? 'text-stone-500 hover:bg-stone-800' : 'text-stone-400 hover:bg-stone-200'}`}
+        >
+          <TextSizeIcon />
+        </button>
+        {showSettings && <SettingsDropdown {...settingsProps} />}
+      </div>
+
+      <div ref={contentRef} className="flex-grow overflow-y-auto px-6 py-4 hide-scrollbar pb-24"> 
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, y: 15, filter: "blur(8px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -15, filter: "blur(8px)" }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      <div className={`absolute bottom-0 left-0 w-full pt-8 pb-6 px-6 z-20 bg-gradient-to-t to-transparent ${theme === 'dark' ? 'from-[#1c1917] via-[#1c1917]' : theme === 'sepia' ? 'from-[#e3d5c6] via-[#e3d5c6]' : 'from-[#fffdf9] via-[#fffdf9]'}`}>
+        {onNext && (
+          <motion.button 
+            onClick={onNext}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            className={`w-full py-4 rounded-2xl text-xs font-bold tracking-[0.25em] uppercase shadow-xl flex items-center justify-center gap-2 transition-all
+              ${theme === 'dark' ? 'bg-stone-100 text-stone-900 hover:bg-stone-300' : 'bg-stone-900 text-stone-50 hover:bg-stone-800'}
+            `}
+          >
+            {btnText} {step === 0 && <BookIcon />}
+          </motion.button>
+        )}
+        
+        <div className="flex justify-center space-x-2 mt-4">
+            {[0, 1, 2, 3, 4].map((s) => (
+                <div key={s} className={`h-1 rounded-full transition-all duration-700 
+                  ${step === s 
+                     ? (theme === 'dark' ? 'w-8 bg-stone-200' : 'w-8 bg-stone-800') 
+                     : (theme === 'dark' ? 'w-1 bg-stone-700' : 'w-1 bg-stone-300')}
+                `}/>
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+function DailyLeafContent() {
+  const [language, setLanguage] = useState(() => localStorage.getItem("leaf_lang") || "tr");
+  const [textSize, setTextSize] = useState(() => parseInt(localStorage.getItem("leaf_size") || "1"));
+  const [readingTheme, setReadingTheme] = useState(() => localStorage.getItem("leaf_reading_theme") || "light");
+  const [readingFont, setReadingFont] = useState(() => localStorage.getItem("leaf_reading_font") || "serif");
+  const [showSettings, setShowSettings] = useState(false);
+
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem("leaf_theme") === "dark");
+  const [showOnboarding, setShowOnboarding] = useState(() => { return !localStorage.getItem("onboarding_complete"); });
+  const [showSplash, setShowSplash] = useState(true);
+
+  const [step, setStep] = useState(0); 
+  const [dailyContent, setDailyContent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [isPremium, setIsPremium] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [currentDate, setCurrentDate] = useState(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const dateParam = urlParams.get('date');
+    return dateParam && !isNaN(Date.parse(dateParam)) ? dateParam : new Date().toISOString().split('T')[0];
+  });
+  const [inputDate, setInputDate] = useState(currentDate);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [streakFreeze, setStreakFreeze] = useState(0);
+  const [streakAnimation, setStreakAnimation] = useState(false);
+  const [journalNote, setJournalNote] = useState("");
+  const [selectedMood, setSelectedMood] = useState(null);
+  const [savingNote, setSavingNote] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+  
+  const shareCardRef = useRef(null);
+  const [isSharing, setIsSharing] = useState(false);
+  const hasWelcomed = useRef(false);
+
+  const staticTexts = { 
+    en: { 
+        title: "The Daily Leaf", 
+        start: "Start Reading", 
+        continue: "Continue", 
+        complete: "Complete Day", 
+        locked: "Unlock Content", 
+        journalTitle: "Your Inner Voice", 
+        journalPlaceholder: "Write a note for yourself...", 
+        save: "Save Note",
+        storyTitle: "Story of the Day",
+        wordTitle: "Word of the Day",
+        meaningTitle: "Meaning",
+        worldTitle: "World Today",
+        historyTitle: "Historical Note",
+        foodTitle: "Flavor of the Day",
+        atmosphere: "ATMOSPHERE",
+        premium: "PREMIUM",
+        story: "STORY",
+        howAreYou: "How are you feeling?",
+        mood: "Mood"
+    }, 
+    tr: { 
+        title: "Günün Yaprağı", 
+        start: "Okumaya Başla", 
+        continue: "Devam Et", 
+        complete: "Günü Tamamla", 
+        locked: "Kilidi Aç", 
+        journalTitle: "İç Sesin", 
+        journalPlaceholder: "Kendine bir not bırak...", 
+        save: "Notu Kaydet",
+        storyTitle: "Günün Hikayesi",
+        wordTitle: "Günün Kelimesi",
+        meaningTitle: "Anlamı",
+        worldTitle: "Dünyada Bugün",
+        historyTitle: "Tarihsel Not",
+        foodTitle: "Günün Lezzeti",
+        atmosphere: "ATMOSFER",
+        premium: "PREMIUM",
+        story: "HİKAYE",
+        howAreYou: "Bugün nasıl hissediyorsun?",
+        mood: "Ruh Hali"
+    } 
+  };
+
+  const fontSizes = ["text-base", "text-lg", "text-2xl"];
+  const lineHeights = ["leading-7", "leading-8", "leading-10"];
+  const toggleTheme = () => setIsDarkMode(!isDarkMode);
+
+  useEffect(() => { localStorage.setItem("leaf_size", textSize); }, [textSize]);
+  useEffect(() => { localStorage.setItem("leaf_reading_theme", readingTheme); }, [readingTheme]);
+  useEffect(() => { localStorage.setItem("leaf_reading_font", readingFont); }, [readingFont]);
+  useEffect(() => { localStorage.setItem("leaf_lang", language); }, [language]);
+
+  const handleShare = async () => {
+    if (!shareCardRef.current) return;
+    setIsSharing(true);
+    try {
+      const canvas = await html2canvas(shareCardRef.current, { scale: 2, backgroundColor: '#fffdf9', useCORS: true });
+      canvas.toBlob(async (blob) => {
+        if (!blob) { toast.error("Görsel oluşturulamadı."); setIsSharing(false); return; }
+        const file = new File([blob], "daily-leaf.png", { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: 'Daily Leaf', text: 'Günün yaprağından bir not... 🍂' });
+        } else {
+          const link = document.createElement('a');
+          link.href = canvas.toDataURL("image/png");
+          link.download = 'daily-leaf-quote.png';
+          link.click();
+          toast.success("Resim indirildi! 📸");
+        }
+        setIsSharing(false);
+      }, 'image/png');
+    } catch (error) {
+      console.error("Paylaşım hatası:", error);
+      setIsSharing(false);
+    }
+  };
+
+  const updateStreak = async (userId) => { 
+    if (isOffline) return; 
+    const today = new Date().toISOString().split('T')[0]; 
+    await supabase.from('user_reads').upsert({ user_id: userId, date: today }, { onConflict: 'user_id, date' });
+    const { data: profile } = await supabase.from('profiles').select('streak_count, last_read_date, streak_freeze').eq('id', userId).single(); 
+    if (profile) { 
+        setStreakFreeze(profile.streak_freeze || 0);
+        if (profile.last_read_date === today) { setStreak(profile.streak_count); } else { 
+            const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1); const yesterdayStr = yesterday.toISOString().split('T')[0]; 
+            let newStreak = 1; let newFreeze = profile.streak_freeze || 0; let usedFreeze = false; let earnedFreeze = false;
+            if (profile.last_read_date === yesterdayStr) { 
+                newStreak = (profile.streak_count || 0) + 1; 
+                if (newStreak % 7 === 0) { newFreeze += 1; earnedFreeze = true; }
+            } else {
+                if (newFreeze > 0) { newStreak = (profile.streak_count || 0); newFreeze -= 1; usedFreeze = true; } else { newStreak = 1; }
+            }
+            await supabase.from('profiles').update({ streak_count: newStreak, last_read_date: today, streak_freeze: newFreeze }).eq('id', userId); 
+            setStreak(newStreak); setStreakFreeze(newFreeze);
+            if (usedFreeze) { toast("Serin bozulmadı! ❄️"); } else if (earnedFreeze) { toast("Tebrikler! ❄️ 1 Donmuş Yaprak!"); } else { setStreakAnimation(true); setTimeout(() => setStreakAnimation(false), 600); }
+        } 
+    } 
+  };
+
+  const fetchJournal = async (userId, date) => { 
+      const { data } = await supabase.from('journals').select('note, mood').eq('user_id', userId).eq('date', date).single(); 
+      if (data) { setJournalNote(data.note || ""); setSelectedMood(data.mood || null); } else { setJournalNote(""); setSelectedMood(null); }
+  };
+  const checkPremiumStatus = async (userId) => { const { data } = await supabase.from('profiles').select('is_premium').eq('id', userId).single(); if (data?.is_premium) setIsPremium(true); };
+  const checkFavoriteStatus = async (userId, date) => { const { data } = await supabase.from('favorites').select('*').eq('user_id', userId).eq('content_date', date).single(); setIsFavorite(!!data); };
+  
+  const saveJournal = async () => {
+    if (!user) { setShowLogin(true); return; }
+    setSavingNote(true);
+    try {
+      const { error } = await supabase.from('journals').upsert({ user_id: user.id, date: currentDate, note: journalNote, mood: selectedMood }, { onConflict: 'user_id, date' });
+      if (error) throw error;
+      toast.success(language === "en" ? "Saved." : "Kaydedildi.");
+    } catch (error) { toast.error("Hata: " + error.message); } finally { setSavingNote(false); }
+  };
+  
+  const toggleFavorite = async () => { if (!user) { setShowLogin(true); return; } if (isFavorite) { await supabase.from('favorites').delete().eq('user_id', user.id).eq('content_date', currentDate); setIsFavorite(false); } else { await supabase.from('favorites').insert({ user_id: user.id, content_date: currentDate }); setIsFavorite(true); toast.success("🍂"); } };
+  const handleLogout = async () => { await supabase.auth.signOut(); setShowProfile(false); setStreak(0); };
+  const handleSelectDate = (date, targetStep = 0) => { setCurrentDate(date); setStep(targetStep); setShowArchive(false); setShowProfile(false); setShowSettings(false); };
+  const handleNext = () => { if (step < 4) setStep(prev => prev + 1); else setStep(0); setShowSettings(false); };
+  const getButtonText = () => { if (step === 0) return staticTexts[language].start; if (step === 3 && !isPremium) return staticTexts[language].locked; if (step === 4) return language === "en" ? "Read Again" : "Tekrar Oku"; return staticTexts[language].continue; };
+
+  // --- EFFECTS ---
+  useEffect(() => { setInputDate(currentDate); const url = new URL(window.location.href); url.searchParams.set('date', currentDate); window.history.pushState({}, '', url); }, [currentDate]);
+  useEffect(() => { localStorage.setItem("leaf_theme", isDarkMode ? "dark" : "light"); if (isDarkMode) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); }, [isDarkMode]);
+  useEffect(() => { const timer = setTimeout(() => { setShowSplash(false); }, 2000); return () => clearTimeout(timer); }, []);
+
+  useEffect(() => {
+    async function fetchDailyContent() {
+      setLoading(true); setDailyContent(null);
+      try {
+        const { data, error } = await supabase.from('content').select('*').eq('date', currentDate).single();
+        if (error) throw error;
+        setDailyContent(data);
+      } catch (error) {
+        const cachedData = localStorage.getItem(`leaf_${currentDate}`);
+        if (cachedData) { setDailyContent(JSON.parse(cachedData)); setIsOffline(true); }
+      }
+      setLoading(false);
+    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { 
+        setUser(session?.user ?? null); 
+        if (session) { 
+            checkPremiumStatus(session.user.id); 
+            checkFavoriteStatus(session.user.id, currentDate); 
+            fetchJournal(session.user.id, currentDate); 
+            if (currentDate === new Date().toISOString().split('T')[0]) updateStreak(session.user.id); 
+            if (!hasWelcomed.current) { hasWelcomed.current = true; }
+        } else { setIsPremium(false); setIsFavorite(false); setStreak(0); }
+    });
+    fetchDailyContent(); 
+    return () => subscription.unsubscribe();
+  }, [currentDate]);
+
+  const content = dailyContent ? { 
+    story: language === 'en' ? dailyContent.story_en : dailyContent.story_tr, 
+    note: language === 'en' ? dailyContent.note_en : dailyContent.note_tr, 
+    world: language === 'en' ? dailyContent.world_en : dailyContent.world_tr, 
+    history: language === 'en' ? dailyContent.history_en : dailyContent.history_tr, 
+    food: language === 'en' ? dailyContent.food_en : dailyContent.food_tr, 
+    word: language === 'en' ? dailyContent.word_en : dailyContent.word_tr, 
+    meaning: language === 'en' ? dailyContent.meaning_en : dailyContent.meaning_tr, 
+    image: dailyContent.image_url 
+  } : null;
+
+  const getTextColor = () => { if (readingTheme === 'dark') return 'text-stone-300'; if (readingTheme === 'sepia') return 'text-[#5b4636]'; return 'text-stone-800'; };
+
+  const settingsProps = { readingTheme, setReadingTheme, readingFont, setReadingFont, textSize, setTextSize, isDarkMode };
+
+  return (
+    <main className={`min-h-screen flex flex-col items-center justify-center p-4 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#1c1917]' : 'bg-[#f5f0e6]'}`}>
+      <Toaster position="top-center" theme={isDarkMode ? 'dark' : 'light'} />
+      <Helmet>
+        <title>Daily Leaf | {getFormattedDate(currentDate, language)}</title> 
+        <meta name="theme-color" content={isDarkMode ? "#1c1917" : "#f5f0e6"} />
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;700&display=swap" rel="stylesheet" />
+      </Helmet>
+
+      <ReadingBuddies language={language} />
+
+      {/* HEADER */}
+      <div className="absolute top-6 right-6 z-40 flex items-center gap-3 w-full justify-end max-w-screen-md px-4">
+        {user && (
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full shadow-sm transition-all duration-300 ${streakAnimation ? 'scale-110' : ''} ${isDarkMode ? 'bg-stone-800 border-stone-700 text-stone-300' : 'bg-[#e8e6e1] border-[#d6d3ce] text-stone-600'}`}>
+                <StackIcon /> <span className="text-xs font-bold font-serif">{streak}</span>
+                {streakFreeze > 0 && (<><div className="w-px h-3 bg-stone-400/30 mx-1" /> <SnowIcon /><span className="text-xs font-bold font-serif">{streakFreeze}</span></>)}
+          </div>
+        )}
+        <button onClick={toggleTheme} className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all ${isDarkMode ? 'bg-stone-800 text-yellow-400 border border-stone-700' : 'bg-[#fffdf9] text-stone-400 border border-stone-200'}`}>{isDarkMode ? <SunIcon /> : <MoonIcon />}</button>
+        {content && (<button onClick={toggleFavorite} className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all ${isFavorite ? 'bg-red-50 text-red-400 border-red-100' : isDarkMode ? 'bg-stone-800 text-stone-400 border-stone-700' : 'bg-[#fffdf9] text-stone-400 border-stone-200'}`}>{isFavorite ? <HeartIcon /> : <HeartOutlineIcon />}</button>)}
+        <div className={`flex items-center gap-2 px-3 h-9 rounded-full shadow-sm ${isDarkMode ? 'bg-stone-800 border border-stone-700' : 'bg-[#fffdf9] border border-stone-200'}`}>
+            <button onClick={() => setShowArchive(true)} className="text-stone-400 hover:text-green-600 transition-colors"><CalendarIcon /></button>
+            <input type="date" value={inputDate} onChange={(e) => setInputDate(e.target.value)} className="bg-transparent text-xs font-bold focus:outline-none w-24 dark:text-stone-300" />
+        </div>
+        {user ? (<button onClick={() => setShowProfile(true)} className="w-9 h-9 rounded-full flex items-center justify-center bg-stone-200 dark:bg-stone-800"><UserIcon /></button>) : (<button onClick={() => setShowLogin(true)} className="text-xs font-bold underline">{language === "en" ? "Login" : "Giriş"}</button>)}
+      </div>
+
+      <div className="w-full max-w-md bg-[#fffdf9] dark:bg-[#1c1917] shadow-2xl rounded-[2.5rem] h-[85vh] md:h-[80vh] border border-stone-100 dark:border-stone-800 relative overflow-hidden flex flex-col transition-all duration-700">
+        {loading ? ( <Skeleton /> ) : content ? (
+            <>
+               {step === 0 && (
+                    <div className="flex flex-col h-full relative">
+                        <div className="flex-grow overflow-y-auto hide-scrollbar pb-24">
+                            <div className="w-full h-2/3 relative">
+                                {content.image ? (<ImageLoader src={content.image} className="w-full h-full object-cover" />) : (<div className="w-full h-full bg-stone-200 dark:bg-stone-800 flex items-center justify-center"><LeafIcon /></div>)}
+                                <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#fffdf9] dark:from-[#1c1917] to-transparent"></div>
+                                <motion.button whileTap={{ scale: 0.98 }} onClick={handleShare} className="absolute top-4 right-4 bg-white/20 backdrop-blur-md p-2 rounded-full text-white z-30"><ShareIcon /></motion.button>
+                            </div>
+                            <div className="px-8 -mt-10 relative z-10">
+                                <div className="bg-[#fffdf9]/90 dark:bg-[#1c1917]/90 backdrop-blur-md border border-stone-100 dark:border-stone-800 p-6 rounded-[2rem] shadow-xl">
+                                    <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-stone-400 mb-2">{getFormattedDate(currentDate, language)}</p>
+                                    <h1 className="text-3xl font-serif font-bold text-stone-900 dark:text-stone-100 mb-6" style={{ fontFamily: '"Playfair Display", serif' }}>{staticTexts[language].title}</h1>
+                                    <div className="space-y-4">
+                                            <div className="flex items-center gap-4"><div className="p-3 bg-stone-100 dark:bg-stone-800 rounded-2xl"><BookIcon /></div><div><p className="text-[10px] font-bold uppercase text-stone-400">{staticTexts[language].story}</p><p className="font-serif italic text-stone-900 dark:text-stone-200 line-clamp-1">"{content.story.substring(0, 30)}..."</p></div></div>
+                                            <div className="flex items-center gap-4"><div className="p-3 bg-stone-100 dark:bg-stone-800 rounded-2xl"><MusicIcon /></div><div><p className="text-[10px] font-bold uppercase text-stone-400">{staticTexts[language].atmosphere}</p><p className="font-serif text-stone-900 dark:text-stone-200">Huzurlu bir an...</p></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="absolute bottom-0 left-0 w-full p-6 z-20"><motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} onClick={handleNext} className="w-full py-4 bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-900 rounded-2xl text-xs font-bold tracking-[0.25em] uppercase shadow-lg flex justify-center items-center gap-2">{staticTexts[language].start} <BookIcon /></motion.button></div>
+                    </div>
+                )}
+
+                {step === 1 && (
+                  <LeafCard onNext={handleNext} btnText={getButtonText()} step={step} theme={readingTheme} showSettings={showSettings} setShowSettings={setShowSettings} settingsProps={settingsProps}>
+                    <div className="pt-6 text-center">
+                        {content.image && <div className="w-full h-52 mb-8 rounded-[2rem] overflow-hidden shadow-md"><ImageLoader src={content.image} className="w-full h-full object-cover" /></div>}
+                        <h2 className={`text-2xl font-bold mb-6 ${readingFont === 'serif' ? 'font-serif' : 'font-sans'} ${getTextColor()}`} style={readingFont === 'serif' ? { fontFamily: '"Playfair Display", serif' } : {}}>{staticTexts[language].storyTitle}</h2>
+                        <p className={`${fontSizes[textSize]} ${lineHeights[textSize]} text-left whitespace-pre-line px-2 transition-all duration-500 ${getTextColor()} ${readingFont === 'serif' ? 'font-serif' : 'font-sans'}`} style={readingFont === 'serif' ? { fontFamily: '"Lora", serif' } : {}}>{content.story}</p>
+                    </div>
+                  </LeafCard>
+                )}
+
+                {step === 2 && (
+                  <LeafCard onNext={handleNext} btnText={getButtonText()} step={step} theme={readingTheme} showSettings={showSettings} setShowSettings={setShowSettings} settingsProps={settingsProps}>
+                    <div className="space-y-12 pt-10">
+                      <div className={`bg-stone-50 dark:bg-stone-800/50 p-8 rounded-[2.5rem] border border-stone-100 dark:border-stone-700 relative`}>
+                        <div className={`absolute -top-4 left-8 px-2 text-stone-300 ${readingTheme === 'sepia' ? 'bg-[#e3d5c6]' : readingTheme === 'dark' ? 'bg-[#1c1917]' : 'bg-[#fffdf9]'}`}><QuillIcon /></div>
+                        <p className="text-xl font-serif italic text-stone-900 dark:text-stone-100 text-center" style={{ fontFamily: '"Playfair Display", serif' }}>"{content.note}"</p>
+                      </div>
+                      {content.word && (
+                        <div className="bg-[#fffbf0] dark:bg-stone-800/30 p-6 rounded-[2rem] border border-stone-100 dark:border-stone-700 relative text-center">
+                          <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-stone-400 mb-2">{staticTexts[language].wordTitle}</h3>
+                          <p className="text-3xl font-serif font-bold text-stone-900 dark:text-stone-100 mb-1">{content.word}</p>
+                          <p className="text-sm font-serif italic text-stone-600 dark:text-stone-400">{content.meaning}</p>
+                        </div>
+                      )}
+                      <div className="px-4">
+                        <div className="flex items-center gap-3 mb-4 border-b border-stone-100 dark:border-stone-800 pb-2"><WorldIcon /><h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">{staticTexts[language].worldTitle}</h3></div>
+                        <p className={`text-lg leading-relaxed ${getTextColor()}`} style={{ fontFamily: '"Lora", serif' }}>{content.world}</p>
+                      </div>
+                    </div>
+                  </LeafCard>
+                )}
+
+                {step === 3 && (isPremium ? (
+                  <LeafCard onNext={handleNext} btnText={getButtonText()} step={step} theme={readingTheme} showSettings={showSettings} setShowSettings={setShowSettings} settingsProps={settingsProps}>
+                    <div className="space-y-8 pt-6">
+                      <div className="px-4">
+                        <div className="flex items-center gap-3 mb-4 border-b border-stone-100 dark:border-stone-800 pb-2"><HistoryIcon /><h3 className="font-bold text-xs uppercase tracking-widest text-stone-500">{staticTexts[language].historyTitle}</h3></div>
+                        <p className={`text-lg leading-relaxed ${getTextColor()}`}>{content.history}</p>
+                      </div>
+                      <div className="rounded-[2.5rem] bg-stone-900 dark:bg-stone-800 p-8 text-stone-50 text-center shadow-xl">
+                        <div className="flex justify-center mb-4 text-stone-400"><FoodIcon /></div>
+                        <h3 className="font-bold text-[10px] uppercase tracking-[0.3em] text-stone-500 mb-4">{staticTexts[language].foodTitle}</h3>
+                        <p className="text-2xl font-serif italic" style={{ fontFamily: '"Playfair Display", serif' }}>{content.food}</p>
+                      </div>
+                    </div>
+                  </LeafCard>
+                ) : (
+                  <div className="flex flex-col h-full items-center justify-center p-8 text-center bg-[#fffdf9] dark:bg-[#1c1917]">
+                    <div className="p-6 bg-stone-50 dark:bg-stone-800 rounded-full mb-6"><LockIcon /></div>
+                    <h3 className="text-2xl font-serif font-bold mb-4 dark:text-stone-100">Özel İçerik</h3>
+                    <p className="text-stone-500 mb-8 max-w-xs leading-relaxed">Bu bölüm sadece Premium üyelerimize açıktır.</p>
+                    <button onClick={() => setShowPayment(true)} className="w-full py-4 bg-stone-900 text-white rounded-2xl font-bold uppercase tracking-widest text-xs shadow-lg">Kilidi Aç</button>
+                    <button onClick={() => setStep(0)} className="mt-6 text-xs text-stone-400 underline">Başa Dön</button>
+                  </div>
+                ))}
+
+                {step === 4 && (
+                  <LeafCard onNext={null} step={step} theme={readingTheme} showSettings={showSettings} setShowSettings={setShowSettings} settingsProps={settingsProps}>
+                    <div className="flex flex-col h-full pt-4">
+                      <div className="text-center mb-6">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-400 mb-2"><PenIcon /></div>
+                        <h2 className={`text-2xl font-serif font-bold ${getTextColor()}`}>{staticTexts[language].journalTitle}</h2>
+                      </div>
+                      
+                      <div className="flex justify-center gap-3 mb-8">
+                        {[
+                          { id: 'happy', icon: '☀️', label: language === 'en' ? 'Happy' : 'Mutlu', color: 'bg-yellow-100 border-yellow-300' }, 
+                          { id: 'calm', icon: '🌿', label: language === 'en' ? 'Calm' : 'Huzurlu', color: 'bg-green-100 border-green-300' }, 
+                          { id: 'melancholy', icon: '🌧️', label: language === 'en' ? 'Melancholy' : 'Düşünceli', color: 'bg-blue-100 border-blue-300' }, 
+                          { id: 'inspired', icon: '✨', label: language === 'en' ? 'Inspired' : 'İlhamlı', color: 'bg-purple-100 border-purple-300' }, 
+                          { id: 'tired', icon: '☁️', label: language === 'en' ? 'Tired' : 'Yorgun', color: 'bg-stone-100 border-stone-300' }
+                        ].map((m) => (
+                          <button key={m.id} onClick={() => setSelectedMood(m.id)} className={`flex flex-col items-center gap-2 transition-all duration-500 ${selectedMood === m.id ? 'scale-110 opacity-100' : 'opacity-40 grayscale hover:grayscale-0'}`}>
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl border-2 ${selectedMood === m.id ? m.color : 'bg-transparent border-transparent'}`}>{m.icon}</div>
+                            <span className="text-[9px] font-bold uppercase tracking-wider dark:text-stone-500">{m.label}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="relative flex-grow mb-6">
+                        <textarea 
+                          value={journalNote} 
+                          onChange={(e) => setJournalNote(e.target.value)} 
+                          placeholder={staticTexts[language].journalPlaceholder} 
+                          className={`w-full h-full bg-stone-50/50 dark:bg-stone-800/30 rounded-[2rem] p-6 text-lg font-serif outline-none border border-transparent focus:border-stone-200 transition-all resize-none ${getTextColor()}`} 
+                        />
+                      </div>
+
+                      <motion.button whileTap={{ scale: 0.98 }} onClick={saveJournal} disabled={savingNote || !user} className="w-full py-4 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 rounded-2xl font-bold uppercase tracking-widest text-xs shadow-xl disabled:opacity-50">
+                        {savingNote ? "..." : staticTexts[language].save}
+                      </motion.button>
+                      <button onClick={() => setStep(0)} className="w-full py-4 text-[10px] font-bold tracking-widest uppercase text-stone-400 transition-colors">Başa Dön</button>
+                    </div>
+                  </LeafCard>
+                )}
+            </>
+        ) : (
+            <div className="flex flex-col h-full items-center justify-center text-center p-8 bg-[#fffdf9] dark:bg-[#1c1917]">
+                <div className="mb-8"><StreakTree streak={streak} /></div>
+                <h2 className="text-xl font-serif font-bold dark:text-stone-200 mb-2">Bugünün Yaprağı Bekliyor</h2>
+                <button onClick={() => setShowArchive(true)} className="px-8 py-3 bg-stone-100 dark:bg-stone-800 rounded-xl font-bold uppercase tracking-widest text-xs">Tarih Seç</button>
+            </div>
+        )}
+      </div>
+
+      {/* PAYLAŞIM KARTI (GİZLİ) */}
+      <div className="fixed -left-[9999px] top-0">
+        <div ref={shareCardRef} className="w-[1080px] h-[1920px] bg-[#fffdf9] flex flex-col items-center justify-between p-20 text-center font-serif relative">
+            <div className="mt-40"><LeafIcon /><h1 className="text-6xl font-bold text-stone-800 mt-8">Daily Leaf</h1><p className="text-3xl text-stone-500 uppercase tracking-[0.3em] mt-4">{getFormattedDate(currentDate, language)}</p></div>
+            <div className="max-w-4xl"><p className="text-6xl text-stone-800 leading-tight italic">"{content?.note || "..."}"</p></div>
+            <div className="mb-40 opacity-50"><p className="text-2xl text-stone-400 font-bold">dailyleaf.app</p></div>
+        </div>
+      </div>
+
+      <Suspense fallback={null}>
+        {showArchive && <ArchiveModal selectedDate={currentDate} onClose={() => setShowArchive(false)} onSelectDate={(date) => handleSelectDate(date, 0)} />}
+        {showProfile && user && <ProfileModal user={user} language={language} onClose={() => setShowProfile(false)} onLogout={handleLogout} onSelectDate={handleSelectDate} onOpenAdmin={() => setShowAdmin(true)} />}
+        {showAdmin && <AdminModal onClose={() => setShowAdmin(false)} language={language} />}
+        {showLogin && <Login onLogin={() => setShowLogin(false)} />}
+        {showPayment && <PaymentModal user={user} onClose={() => setShowPayment(false)} onSuccess={() => setIsPremium(true)} />}
+      </Suspense>
+
+      <AmbientPlayer />
+    </main>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <DailyLeafContent />
+    </ErrorBoundary>
+  );
+}
